@@ -1,8 +1,8 @@
 // components/creators/promoted-section.tsx
 "use client"
 
-import { SheetCreator, formatFollowerCount } from "@/lib/sheets"
-import { Star, Users, TrendingUp, ShieldCheck } from "lucide-react"
+import { SheetCreator, formatFollowerCount, getPrestigeTier } from "@/lib/sheets"
+import { Star, Award, TrendingUp, ShieldCheck } from "lucide-react"
 
 interface PromotedSectionProps {
   creators: SheetCreator[]
@@ -187,8 +187,8 @@ export function PromotedSection({ creators, onViewProfile }: PromotedSectionProp
                   <div className="border-t border-slate-100 dark:border-slate-800/60 pt-2 flex items-center justify-around gap-1 mb-2">
                     {creator.followerCount > 0 && (
                       <div className="flex items-center gap-0.5">
-                        <Users className="w-3 h-3 text-slate-400" />
-                        <span className="text-[9px] text-slate-500 dark:text-slate-400">{formatFollowerCount(creator.followerCount)}</span>
+                        <Award className="w-3 h-3 text-amber-500" />
+                        <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300">{getPrestigeTier(creator.followerCount)}</span>
                       </div>
                     )}
                     {creator.motivationScore > 0 && (
