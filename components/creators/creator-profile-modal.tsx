@@ -4,10 +4,10 @@
 import { useState, useEffect, useRef } from "react"
 import { 
   X, Instagram, Copy, Check, Share2, Twitter, 
-  Linkedin, Facebook, MessageCircle, Download, RefreshCw 
+  Linkedin, Facebook, MessageCircle, Download, RefreshCw, Award
 } from "lucide-react"
 import { toPng } from "html-to-image"
-import { SheetCreator, formatFollowerCount } from "@/lib/sheets"
+import { SheetCreator, formatFollowerCount, getPrestigeTier } from "@/lib/sheets"
 
 interface CreatorProfileModalProps {
   creator: SheetCreator | null
@@ -43,13 +43,17 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
 
   if (!isOpen || !creator) return null
 
+  const proxiedProfilePicture = creator.profilePicture 
+    ? `/api/proxy-image?url=${encodeURIComponent(creator.profilePicture)}`
+    : ""
+
   // Generate unique credential ID based on creator sheet ID
   const rawId = creator.id.replace("sheet-", "")
   const registryNum = rawId.padStart(5, "0")
   const registryId = `UPF-CR-2026-${registryNum}`
 
   // Format Join Date
-  const joinDate = creator.joinedAt.toLocaleDateString("en-US", {
+  const joinDate = new Date(creator.joinedAt).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric"
   })
@@ -121,7 +125,7 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
           
           {/* Card Frame with Perspective */}
           <div 
-            className="w-[280px] sm:w-[320px] md:w-[340px] h-[400px] sm:h-[460px] md:h-[490px] cursor-pointer"
+            className="w-[220px] md:w-[340px] h-[310px] md:h-[490px] cursor-pointer"
             style={{ perspective: "1000px" }}
             onClick={() => setIsFlipped(!isFlipped)}
           >
@@ -136,11 +140,11 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
               
               {/* CARD FRONT FACE */}
               <div 
-                className="absolute inset-0 bg-white border border-slate-300 rounded-3xl p-5 md:p-6 shadow-md flex flex-col justify-between select-none"
+                className="absolute inset-0 bg-white border border-slate-300 rounded-3xl p-3.5 md:p-6 shadow-md flex flex-col justify-between select-none"
                 style={{ backfaceVisibility: "hidden" }}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2 md:pb-3">
                   <div className="flex items-center gap-1.5">
                     <div className="w-5 h-5 bg-[#e6683c] rounded flex items-center justify-center">
                       <span className="text-[10px] text-white font-black">UF</span>
@@ -149,22 +153,23 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
                       UpForge Registry
                     </span>
                   </div>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest hidden md:inline-block">
                     Official Credential
                   </span>
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 flex flex-col items-center justify-center py-4">
+                <div className="flex-1 flex flex-col items-center justify-center py-2 md:py-4">
                   {/* Profile Pic with Premium Verified Rings */}
-                  <div className="relative mb-3.5">
-                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden ring-4 ring-slate-100 ring-offset-2 ring-offset-slate-200 shadow-inner flex items-center justify-center bg-slate-50">
-                      {creator.profilePicture ? (
+                  <div className="relative mb-2 md:mb-3.5">
+                    <div className="w-18 h-18 md:w-28 md:h-28 rounded-full overflow-hidden ring-4 ring-slate-100 ring-offset-2 ring-offset-slate-200 shadow-inner flex items-center justify-center bg-slate-50">
+                      {proxiedProfilePicture ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img 
-                          src={creator.profilePicture} 
+                          src={proxiedProfilePicture} 
                           alt={creator.fullName} 
                           className="w-full h-full object-cover"
+                          crossOrigin="anonymous"
                           onError={(e) => {
                             const t = e.target as HTMLImageElement
                             t.style.display = "none"
@@ -179,37 +184,37 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
                     </div>
                     {/* Blue check stamp */}
                     <div className="absolute bottom-0 right-1 bg-white rounded-full p-0.5 shadow-md">
-                      <svg className="w-6 h-6 text-[#0095F6]" viewBox="0 0 24 24" fill="currentColor">
+                      <svg className="w-4 h-4 md:w-6 md:h-6 text-[#0095F6]" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                       </svg>
                     </div>
                   </div>
 
                   {/* Creator Info */}
-                  <h3 className="font-serif text-lg sm:text-xl font-black text-slate-800 text-center mb-1">
+                  <h3 className="font-serif text-sm md:text-xl font-black text-slate-800 text-center mb-0.5 md:mb-1">
                     {creator.fullName}
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium mb-2">
+                  <p className="text-[10px] md:text-xs text-slate-500 font-medium mb-1.5 md:mb-2">
                     @{creator.instagramHandle}
                   </p>
 
                   {/* Niche / Category */}
-                  <span className="px-3 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-3">
+                  <span className="px-2 py-0.5 md:px-3 md:py-0.5 rounded-full border border-amber-300 bg-amber-50 text-[8px] md:text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-2 md:mb-3">
                     {creator.niche}
                   </span>
 
                   {/* Verification Status Banner */}
-                  <div className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2 px-3 flex items-center justify-around gap-1">
+                  <div className="w-full bg-slate-50 border border-slate-100 rounded-xl py-1 md:py-2.5 px-1.5 md:px-4 flex items-center justify-around gap-1">
                     <div className="text-center">
-                      <p className="text-[8px] text-slate-400 uppercase tracking-wider font-semibold">Audience Reach</p>
-                      <p className="text-xs font-black text-slate-800">
-                        {creator.followerCount > 0 ? formatFollowerCount(creator.followerCount) : creator.followerCountRaw}
+                      <p className="text-[7px] md:text-[8px] text-slate-400 uppercase tracking-wider font-semibold">Influence Tier</p>
+                      <p className="text-[9px] md:text-xs font-black text-slate-800">
+                        {getPrestigeTier(creator.followerCount)}
                       </p>
                     </div>
-                    <div className="h-6 w-px bg-slate-200" />
+                    <div className="h-5 md:h-6 w-px bg-slate-200" />
                     <div className="text-center">
-                      <p className="text-[8px] text-slate-400 uppercase tracking-wider font-semibold">Trust Score</p>
-                      <p className="text-xs font-black text-emerald-600">
+                      <p className="text-[7px] md:text-[8px] text-slate-400 uppercase tracking-wider font-semibold">Trust Index</p>
+                      <p className="text-[9px] md:text-xs font-black text-emerald-600">
                         {creator.motivationScore > 0 ? `${creator.motivationScore}/10` : "N/A"}
                       </p>
                     </div>
@@ -217,28 +222,28 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
+                <div className="border-t border-slate-100 pt-2 md:pt-3 flex items-center justify-between">
                   <div className="text-left">
-                    <p className="text-[7px] text-slate-400 uppercase tracking-widest font-semibold">Registry Number</p>
-                    <p className="text-[9px] font-mono font-bold text-slate-600">{registryId}</p>
+                    <p className="text-[6px] md:text-[7px] text-slate-400 uppercase tracking-widest font-semibold">Registry Number</p>
+                    <p className="text-[7px] md:text-[9px] font-mono font-bold text-slate-600">{registryId}</p>
                   </div>
-                  <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-100">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                    <span className="text-[8px] font-black uppercase tracking-wider">Active</span>
+                  <div className="flex items-center gap-0.5 md:gap-1 bg-emerald-50 text-emerald-700 px-1.5 py-0.5 md:px-2.5 md:py-0.5 rounded-md border border-emerald-100">
+                    <span className="w-1 md:w-1.5 h-1 md:h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                    <span className="text-[7px] md:text-[8px] font-black uppercase tracking-wider">Active</span>
                   </div>
                 </div>
               </div>
 
               {/* CARD BACK FACE */}
               <div 
-                className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-3xl p-5 md:p-6 shadow-md flex flex-col justify-between select-none"
+                className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-3xl p-3.5 md:p-6 shadow-md flex flex-col justify-between select-none"
                 style={{ 
                   backfaceVisibility: "hidden",
                   transform: "rotateY(180deg)"
                 }}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2 md:pb-3">
                   <div className="flex items-center gap-1.5">
                     <div className="w-5 h-5 bg-yellow-500 rounded flex items-center justify-center">
                       <span className="text-[10px] text-slate-950 font-black">★</span>
@@ -247,22 +252,22 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
                       Registry Metadata
                     </span>
                   </div>
-                  <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">
+                  <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest hidden md:inline-block">
                     Data Records
                   </span>
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 flex flex-col justify-center py-4 text-slate-300">
+                <div className="flex-1 flex flex-col justify-center py-2 md:py-4 text-slate-300">
                   {/* Dynamic Bio Intro */}
-                  <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-3 mb-4">
+                  <div className="hidden md:block bg-slate-950/40 border border-slate-800 rounded-xl p-3 mb-4">
                     <p className="text-[11px] leading-relaxed italic text-slate-300">
-                      &ldquo;{creator.fullName} is an officially verified content creator specializing in the {creator.niche} category. Recognized as an active registry member at UpForge, they maintain a verified audience reach of {creator.followerCount > 0 ? formatFollowerCount(creator.followerCount) : creator.followerCountRaw} followers.&rdquo;
+                      &ldquo;{creator.fullName} is an officially verified content creator specializing in the {creator.niche} category. Recognized as an active registry member at UpForge, they maintain a verified status with an influence tier of {getPrestigeTier(creator.followerCount)}.&rdquo;
                     </p>
                   </div>
 
                   {/* Metadata Stats Grid */}
-                  <div className="space-y-2 text-xs">
+                  <div className="space-y-1.5 md:space-y-2 text-[10px] md:text-xs">
                     <div className="flex justify-between py-1 border-b border-slate-800/60">
                       <span className="text-slate-500">Registry Stamp</span>
                       <span className="font-mono text-slate-300 font-bold">{registryId}</span>
@@ -273,11 +278,11 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
                     </div>
                     
                     {/* Reveal Email section */}
-                    <div className="flex justify-between items-center py-1.5">
+                    <div className="flex justify-between items-center py-1">
                       <span className="text-slate-500">Business Inquiry</span>
                       {emailRevealed ? (
-                        <div className="flex items-center gap-1.5 bg-slate-950 px-2 py-1 rounded border border-slate-800">
-                          <span className="text-[10px] font-mono text-yellow-400">
+                        <div className="flex items-center gap-1.5 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                          <span className="text-[8px] md:text-[10px] font-mono text-yellow-400">
                             {creator.instagramHandle}.collab@upforge.in
                           </span>
                           <button
@@ -298,7 +303,7 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
                             e.stopPropagation()
                             setEmailRevealed(true)
                           }}
-                          className="px-2.5 py-1 rounded bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-[10px] uppercase tracking-wider transition-colors shadow-sm"
+                          className="px-2 py-0.5 md:px-2.5 md:py-1 rounded bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-[8px] md:text-[10px] uppercase tracking-wider transition-colors shadow-sm"
                         >
                           Reveal Email
                         </button>
@@ -308,13 +313,13 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-slate-800 pt-3 flex items-center justify-between">
+                <div className="border-t border-slate-800 pt-2 md:pt-3 flex items-center justify-between">
                   <div className="text-left">
-                    <p className="text-[7px] text-slate-500 uppercase tracking-widest font-semibold font-serif">Verified Issuer</p>
-                    <p className="text-[9px] font-black text-slate-400 tracking-wider">UPFORGE GLOBAL INC.</p>
+                    <p className="text-[6px] md:text-[7px] text-slate-500 uppercase tracking-widest font-semibold font-serif">Verified Issuer</p>
+                    <p className="text-[8px] md:text-[9px] font-black text-slate-400 tracking-wider">UPFORGE GLOBAL INC.</p>
                   </div>
-                  <span className="text-[8px] font-semibold text-slate-500 uppercase">
-                    Click Card to Flip
+                  <span className="text-[7px] md:text-[8px] font-semibold text-slate-500 uppercase">
+                    Click to Flip
                   </span>
                 </div>
               </div>
@@ -332,15 +337,15 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
         </div>
 
         {/* Right Side: Action Kit (5 cols on desktop) */}
-        <div className="md:col-span-5 p-6 md:p-8 flex flex-col justify-between bg-background overflow-y-auto">
+        <div className="md:col-span-5 p-4 md:p-8 flex flex-col justify-between bg-background overflow-y-auto">
           {/* Close button & Title */}
           <div>
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-start mb-4 md:mb-6">
               <div>
                 <span className="text-[9px] font-bold text-[#e6683c] uppercase tracking-widest block mb-1">
                   Creator Registry Profile
                 </span>
-                <h2 className="font-serif text-2xl font-black text-foreground leading-tight">
+                <h2 className="font-serif text-xl md:text-2xl font-black text-foreground leading-tight">
                   {creator.fullName}
                 </h2>
               </div>
@@ -353,28 +358,28 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
             </div>
 
             {/* Description */}
-            <p className="text-xs text-muted-foreground mb-6 leading-relaxed">
+            <p className="text-[11px] md:text-xs text-muted-foreground mb-4 md:mb-6 leading-relaxed">
               Verify membership, download a high-fidelity digital card, and share their credentials with your network or brands for collaborations.
             </p>
 
             {/* Download section */}
-            <div className="border-t border-border pt-5 mb-6">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            <div className="border-t border-border pt-4 md:pt-5 mb-4 md:mb-6">
+              <h4 className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 md:mb-3">
                 Download Card Kit
               </h4>
               <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-foreground text-background text-xs font-bold hover:opacity-90 active:scale-95 transition-all shadow-md"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 md:px-6 md:py-3 rounded-xl bg-foreground text-background text-[11px] md:text-xs font-bold hover:opacity-90 active:scale-95 transition-all shadow-md cursor-pointer"
               >
                 {downloading ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     Generating PNG...
                   </>
                 ) : (
                   <>
-                    <Download className="w-4 h-4" />
+                    <Download className="w-3.5 h-3.5" />
                     Download Registry Card (PNG)
                   </>
                 )}
@@ -382,8 +387,8 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
             </div>
 
             {/* Share section */}
-            <div className="border-t border-border pt-5">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            <div className="border-t border-border pt-4 md:pt-5">
+              <h4 className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 md:mb-3">
                 Share Verification
               </h4>
               
@@ -391,7 +396,7 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
                 {/* Copy Link */}
                 <button
                   onClick={handleCopyLink}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-border hover:bg-muted text-xs font-semibold text-foreground transition-all"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 md:py-2.5 rounded-lg border border-border hover:bg-muted text-xs font-semibold text-foreground transition-all cursor-pointer"
                 >
                   {shareCopied ? (
                     <>
@@ -411,7 +416,7 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
                   href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + " " + shareUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-green-50 hover:bg-green-100/80 border border-green-200 text-green-700 text-xs font-semibold transition-all"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 md:py-2.5 rounded-lg bg-green-50 hover:bg-green-100/80 border border-green-200 text-green-700 text-xs font-semibold transition-all"
                 >
                   <MessageCircle className="w-3.5 h-3.5" />
                   WhatsApp
@@ -422,7 +427,7 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
                   href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-800 transition-all"
+                  className="hidden md:flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-800 transition-all"
                 >
                   <Twitter className="w-3.5 h-3.5" />
                   Twitter / X
@@ -433,7 +438,7 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
                   href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-semibold transition-all"
+                  className="hidden md:flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-semibold transition-all"
                 >
                   <Linkedin className="w-3.5 h-3.5" />
                   LinkedIn
@@ -443,7 +448,7 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
           </div>
 
           {/* Registry Verification Stamp */}
-          <div className="border-t border-border pt-4 mt-6 flex items-center gap-3">
+          <div className="hidden md:flex border-t border-border pt-4 mt-6 items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
               <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -492,10 +497,10 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
             {/* Profile Pic with Premium Verified Rings */}
             <div className="relative mb-4">
               <div className="w-28 h-28 rounded-full overflow-hidden ring-4 ring-slate-100 ring-offset-2 ring-offset-slate-200 shadow-inner flex items-center justify-center bg-slate-50">
-                {creator.profilePicture ? (
+                {proxiedProfilePicture ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img 
-                    src={creator.profilePicture} 
+                    src={proxiedProfilePicture} 
                     alt={creator.fullName} 
                     className="w-full h-full object-cover"
                     crossOrigin="anonymous" // Set CORS anonymous to enable canvas pixel reading
@@ -535,14 +540,14 @@ export function CreatorProfileModal({ creator, isOpen, onClose }: CreatorProfile
             {/* Verification Status Banner */}
             <div className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 flex items-center justify-around gap-1">
               <div className="text-center">
-                <p className="text-[8px] text-slate-400 uppercase tracking-wider font-semibold">Audience Reach</p>
+                <p className="text-[8px] text-slate-400 uppercase tracking-wider font-semibold">Influence Tier</p>
                 <p className="text-xs font-black text-slate-800">
-                  {creator.followerCount > 0 ? formatFollowerCount(creator.followerCount) : creator.followerCountRaw}
+                  {getPrestigeTier(creator.followerCount)}
                 </p>
               </div>
               <div className="h-6 w-px bg-slate-200" />
               <div className="text-center">
-                <p className="text-[8px] text-slate-400 uppercase tracking-wider font-semibold">Trust Score</p>
+                <p className="text-[8px] text-slate-400 uppercase tracking-wider font-semibold">Trust Index</p>
                 <p className="text-xs font-black text-emerald-600">
                   {creator.motivationScore > 0 ? `${creator.motivationScore}/10` : "N/A"}
                 </p>
