@@ -13,7 +13,7 @@ export interface SheetCreator {
   howHeard: string
   comments: string
   profilePicture: string
-  joinedAt: Date
+  joinedAt: string
 }
 
 const SHEET_CSV_URL =
@@ -103,7 +103,7 @@ function parseCSVLine(line: string): string[] {
 export async function fetchCreatorsFromSheet(): Promise<SheetCreator[]> {
   try {
     const response = await fetch(SHEET_CSV_URL, {
-      cache: "no-store",
+      next: { revalidate: 300 }, // Cache for 5 minutes (300 seconds)
       headers: {
         Accept: "text/csv,text/plain,*/*",
       },
@@ -152,12 +152,12 @@ export async function fetchCreatorsFromSheet(): Promise<SheetCreator[]> {
       const comments = cols[7]?.trim() || ""
       const profilePicture = convertGoogleDriveUrl(cols[8]?.trim() || "")
 
-      let joinedAt: Date
+      let joinedAt: string
       try {
-        joinedAt = timestamp ? new Date(timestamp) : new Date()
-        if (isNaN(joinedAt.getTime())) joinedAt = new Date()
+        const parsedDate = timestamp ? new Date(timestamp) : new Date()
+        joinedAt = !isNaN(parsedDate.getTime()) ? parsedDate.toISOString() : new Date().toISOString()
       } catch {
-        joinedAt = new Date()
+        joinedAt = new Date().toISOString()
       }
 
       creators.push({
@@ -197,4 +197,13 @@ export function formatFollowerCount(count: number): string {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
   if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
   return count.toString()
+}
+
+export function getPrestigeTier(followerCount: number): string {
+  if (followerCount >= 1000000) return "Global Icon"
+  if (followerCount >= 500000) return "Master Creator"
+  if (followerCount >= 100000) return "Elite Creator"
+  if (followerCount >= 50000) return "Pro Creator"
+  if (followerCount >= 10000) return "Rising Star"
+  return "Verified Creator"
 }
