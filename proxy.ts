@@ -1,4 +1,3 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // ── APPROVED BOTS (Allowed to crawl/fetch) ───────────────────────────────────
@@ -172,11 +171,10 @@ export async function proxy(request: NextRequest) {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // STEP 2: PROXY / SUPABASE / DOMAIN HEADERS (Only run on non-API routes)
+  // STEP 2: PROXY / DOMAIN HEADERS (Only run on non-API routes)
   // ─────────────────────────────────────────────────────────────────────────
 
-  // Skip proxy logic for API routes (except if it is an admin API route, but as per
-  // original proxy.ts config, /api was excluded completely).
+  // Skip proxy logic for API routes
   if (pathname.startsWith('/api')) {
     return NextResponse.next()
   }
@@ -187,23 +185,7 @@ export async function proxy(request: NextRequest) {
   response.headers.set('x-upforge-domain', 'org')
   response.headers.set('x-upforge-pathname', pathname)
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) { return request.cookies.get(name)?.value },
-        set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          response.cookies.set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
-
-  // Admin route protection
+  // Admin route protection via cookies (No active Supabase dependency check)
   if (pathname.startsWith('/admin')) {
     if (pathname === '/admin/login' || pathname.startsWith('/api/admin/')) {
       return response
@@ -213,8 +195,6 @@ export async function proxy(request: NextRequest) {
     if (!adminAuth || adminAuth !== 'authenticated') {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
-    // Only run expensive auth check on admin routes
-    await supabase.auth.getUser()
   }
 
   return response
